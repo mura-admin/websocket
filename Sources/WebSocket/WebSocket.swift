@@ -10,6 +10,8 @@ public final class WebSocket: BasicWorker {
     public var eventLoop: EventLoop {
         return channel.eventLoop
     }
+    
+    public let id = UUID()
 
     /// Outbound `WebSocketEventHandler`.
     private let channel: Channel
