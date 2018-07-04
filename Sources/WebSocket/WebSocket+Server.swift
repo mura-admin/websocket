@@ -28,6 +28,7 @@ extension HTTPServer {
     ///     - onUpgrade: Called when a new WebSocket client has connected.
     /// - returns: An `HTTPProtocolUpgrader` for use with `HTTPServer`.
     public static func webSocketUpgrader(
+        delegate: WebSocketDelegate,
         maxFrameSize: Int = 1 << 14,
         shouldUpgrade: @escaping (HTTPRequest) -> (HTTPHeaders?),
         onUpgrade: @escaping (WebSocket, HTTPRequest) -> ()
@@ -48,7 +49,7 @@ extension HTTPServer {
                 headers: head.headers
             )
             req.channel = channel
-            let webSocket = WebSocket(channel: channel, mode: .server)
+            let webSocket = WebSocket(channel: channel, mode: .server, delegate: delegate)
             return channel.pipeline.add(webSocket: webSocket).map {
                 onUpgrade(webSocket, req)
             }

@@ -51,85 +51,18 @@ public final class WebSocket: BasicWorker {
     /// `WebSocket` processing mode.
     private(set) public var mode: Mode
 
-    /// See `onText(...)`.
-    var onTextCallback: (WebSocket, String) -> ()
-
-    /// See `onBinary(...)`.
-    var onBinaryCallback: (WebSocket, Data) -> ()
-
-    /// See `onError(...)`.
-    var onErrorCallback: (WebSocket, Error) -> ()
-
-    /// See `onCloseCode(...)`.
-    var onCloseCodeCallback: (WebSocketErrorCode) -> ()
+    /// To handle socket events.
+    weak var delegate: WebSocketDelegate?
 
     /// Creates a new `WebSocket` using the supplied `Channel` and `Mode`.
     /// Use `httpProtocolUpgrader(...)` to create a protocol upgrader that can create `WebSocket`s.
-    internal init(channel: Channel, mode: Mode) {
+    internal init(channel: Channel, mode: Mode, delegate: WebSocketDelegate) {
         self.channel = channel
         self.mode = mode
+        self.delegate = delegate
         self.isClosed = false
-        self.onTextCallback = { _, _ in }
-        self.onBinaryCallback = { _, _ in }
-        self.onErrorCallback = { _, _ in }
-        self.onCloseCodeCallback = { _ in }
     }
-
-    // MARK: Receive
-
-    /// Adds a callback to this `WebSocket` to receive text-formatted messages.
-    ///
-    ///     ws.onText { ws, string in
-    ///         ws.send(string.reversed())
-    ///     }
-    ///
-    /// Use `onBinary(_:)` to handle binary-formatted messages.
-    ///
-    /// - parameters:
-    ///     - callback: Closure to accept incoming text-formatted data.
-    ///                 This will be called every time the connected client sends text.
-    public func onText(_ callback: @escaping (WebSocket, String) -> ()) {
-        onTextCallback = callback
-    }
-
-    /// Adds a callback to this `WebSocket` to receive binary-formatted messages.
-    ///
-    ///     ws.onBinary { ws, data in
-    ///         print(data)
-    ///     }
-    ///
-    /// Use `onText(_:)` to handle text-formatted messages.
-    ///
-    /// - parameters:
-    ///     - callback: Closure to accept incoming binary-formatted data.
-    ///                 This will be called every time the connected client sends binary-data.
-    public func onBinary(_ callback: @escaping (WebSocket, Data) -> ()) {
-        onBinaryCallback = callback
-    }
-
-    /// Adds a callback to this `WebSocket` to handle errors.
-    ///
-    ///     ws.onError { ws, error in
-    ///         print(error)
-    ///     }
-    ///
-    /// - parameters:
-    ///     - callback: Closure to handle error's caught during this connection.
-    public func onError(_ callback: @escaping (WebSocket, Error) -> ()) {
-        onErrorCallback = callback
-    }
-
-    /// Adds a callback to this `WebSocket` to handle incoming close codes.
-    ///
-    ///     ws.onCloseCode { closeCode in
-    ///         print(closeCode)
-    ///     }
-    ///
-    /// - parameters:
-    ///     - callback: Closure to handle received close codes.
-    public func onCloseCode(_ callback: @escaping (WebSocketErrorCode) -> ()) {
-        onCloseCodeCallback = callback
-    }
+    
 
     // MARK: Send
 

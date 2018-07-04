@@ -37,9 +37,10 @@ extension HTTPClient {
         path: String = "/",
         headers: HTTPHeaders = .init(),
         maxFrameSize: Int = 1 << 14,
-        on worker: Worker
+        on worker: Worker,
+        delegate: WebSocketDelegate
     ) -> Future<WebSocket> {
-        let upgrader = WebSocketClientUpgrader(hostname: hostname, path: path, headers: headers, maxFrameSize: maxFrameSize)
+        let upgrader = WebSocketClientUpgrader(hostname: hostname, path: path, headers: headers, delegate: delegate, maxFrameSize: maxFrameSize)
         return HTTPClient.upgrade(scheme: scheme, hostname: hostname, port: port, upgrader: upgrader, on: worker)
     }
 }
@@ -56,15 +57,19 @@ private final class WebSocketClientUpgrader: HTTPClientProtocolUpgrader {
     
     /// Additional headers to use when upgrading.
     let headers: HTTPHeaders
+    
+    /// Delegate to handle socket callback.
+    let delegate: WebSocketDelegate
 
     /// Maximum frame size for decoder.
     private let maxFrameSize: Int
 
     /// Creates a new `WebSocketClientUpgrader`.
-    init(hostname: String, path: String, headers: HTTPHeaders, maxFrameSize: Int) {
+    init(hostname: String, path: String, headers: HTTPHeaders, delegate: WebSocketDelegate, maxFrameSize: Int) {
         self.hostname = hostname
         self.path = path
         self.headers = headers
+        self.delegate = delegate
         self.maxFrameSize = maxFrameSize
     }
 
@@ -98,7 +103,7 @@ private final class WebSocketClientUpgrader: HTTPClientProtocolUpgrader {
 
     /// See `HTTPClientProtocolUpgrader`.
     func upgrade(ctx: ChannelHandlerContext, upgradeResponse: HTTPResponseHead) -> Future<WebSocket> {
-        let webSocket = WebSocket(channel: ctx.channel, mode: .client)
+        let webSocket = WebSocket(channel: ctx.channel, mode: .client, delegate: delegate)
         return ctx.channel.pipeline.addHandlers(WebSocketFrameEncoder(), WebSocketFrameDecoder(maxFrameSize: maxFrameSize), first: false).then {
             return ctx.channel.pipeline.add(webSocket: webSocket)
         }.map(to: WebSocket.self) {
