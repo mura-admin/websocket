@@ -16,6 +16,12 @@ public final class WebSocket: BasicWorker {
     /// Outbound `WebSocketEventHandler`.
     private let channel: Channel
 
+    /// See `onConnected(...)`.
+    var onConnectedCallback: (WebSocket) -> ()
+
+    /// See `onDisconnected(...)`.
+    var onDisconnectedCallback: (WebSocket) -> ()
+
     /// See `onText(...)`.
     var onTextCallback: (WebSocket, String) -> ()
 
@@ -33,10 +39,20 @@ public final class WebSocket: BasicWorker {
     internal init(channel: Channel) {
         self.channel = channel
         self.isClosed = false
+        self.onConnectedCallback = { _ in }
+        self.onDisconnectedCallback = { _ in }
         self.onTextCallback = { _, _ in }
         self.onBinaryCallback = { _, _ in }
         self.onErrorCallback = { _, _ in }
         self.onCloseCodeCallback = { _ in }
+    }
+
+    public func onConnected(_ callback: @escaping (WebSocket) -> ()) {
+        onConnectedCallback = callback
+    }
+    
+    public func onDisconnected(_ callback: @escaping (WebSocket) -> ()) {
+        onDisconnectedCallback = callback
     }
 
     // MARK: Receive
