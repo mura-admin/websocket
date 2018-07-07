@@ -17,7 +17,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/http.git", from: "3.0.0"),
         
         // Event-driven network application framework for high performance protocol servers & clients, non-blocking.
-        .package(url: "https://github.com/apple/swift-nio.git", .branch("master")),
+        .package(url: "https://github.com/apple/swift-nio.git", .exact("1.6.0")),
 
         // Bindings to OpenSSL-compatible libraries for TLS support in SwiftNIO
         .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "1.0.1"),
