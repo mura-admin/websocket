@@ -47,11 +47,11 @@ private final class WebSocketHandler: ChannelInboundHandler {
         case .text:
             var data = frame.unmaskedData
             let text = data.readString(length: data.readableBytes) ?? ""
-            webSocket.onTextCallback(webSocket, text)
+            webSocket.delegate?.webSocketDidReceiveText(socket: webSocket, text: text)
         case .binary:
             var data = frame.unmaskedData
             let binary = data.readData(length: data.readableBytes) ?? Data()
-            webSocket.onBinaryCallback(webSocket, binary)
+            webSocket.delegate?.webSocketDidReceiveBinary(socket: webSocket, data: binary)
         default:
             // We ignore all other frames.
             break
@@ -60,7 +60,7 @@ private final class WebSocketHandler: ChannelInboundHandler {
 
     /// See `ChannelInboundHandler`.
     func errorCaught(ctx: ChannelHandlerContext, error: Error) {
-        webSocket.onErrorCallback(webSocket, error)
+        webSocket.delegate?.webSocketDidCaughtError(socket: webSocket, error: error)
     }
 
     /// Closes gracefully.
@@ -71,7 +71,9 @@ private final class WebSocketHandler: ChannelInboundHandler {
             .map(Int.init)
             .flatMap(WebSocketErrorCode.init(codeNumber:))
         {
-            webSocket.onCloseCodeCallback(closeCode)
+            webSocket.delegate?.webSocketDidDisconnect(socket: webSocket, code: closeCode)
+        } else {
+            webSocket.delegate?.webSocketDidDisconnect(socket: webSocket, code: nil)
         }
 
         // Handle a received close frame. In websockets, we're just going to send the close

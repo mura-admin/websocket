@@ -1,3 +1,4 @@
+import Crypto
 /// Represents a client connected via WebSocket protocol.
 /// Use this to receive text/data frames and send responses.
 ///
@@ -6,6 +7,39 @@
 ///      }
 ///
 public final class WebSocket: BasicWorker {
+    
+    /// Available WebSocket modes. Either `Client` or `Server`.
+    public enum Mode {
+        
+        /// Uses socket in `Client` mode
+        case client
+        
+        /// Uses socket in `Server` mode
+        case server
+        
+        /// RFC 6455 Section 5.1
+        /// To avoid confusing network intermediaries (such as intercepting proxies) and
+        /// for security reasons that are further, a client MUST mask all frames that it
+        /// sends to the server.
+        /// The server MUST close the connection upon receiving a frame that is not masked.
+        /// A server MUST NOT mask any frames that it sends to the client.
+        /// A client MUST close a connection if it detects a masked frame.
+        ///
+        /// RFC 6455 Section 5.3
+        /// The masking key is a 32-bit value chosen at random by the client.
+        /// When preparing a masked frame, the client MUST pick a fresh masking
+        /// key from the set of allowed 32-bit values.
+        public func maskKey() -> WebSocketMaskingKey? {
+            switch self {
+            case .client:
+                let buffer = try! CryptoRandom().generateData(count: 4).map { $0 }
+                return WebSocketMaskingKey(buffer)
+            case .server:
+                return  nil
+            }
+        }
+    }
+    
     /// See `BasicWorker`.
     public var eventLoop: EventLoop {
         return channel.eventLoop
@@ -15,101 +49,22 @@ public final class WebSocket: BasicWorker {
 
     /// Outbound `WebSocketEventHandler`.
     private let channel: Channel
+    
+    /// `WebSocket` processing mode.
+    private(set) public var mode: Mode
+    
+    /// To handle socket events.
+    weak var delegate: WebSocketDelegate?
 
-    /// See `onConnected(...)`.
-    var onConnectedCallback: (WebSocket) -> ()
-
-    /// See `onDisconnected(...)`.
-    var onDisconnectedCallback: (WebSocket) -> ()
-
-    /// See `onText(...)`.
-    var onTextCallback: (WebSocket, String) -> ()
-
-    /// See `onBinary(...)`.
-    var onBinaryCallback: (WebSocket, Data) -> ()
-
-    /// See `onError(...)`.
-    var onErrorCallback: (WebSocket, Error) -> ()
-
-    /// See `onCloseCode(...)`.
-    var onCloseCodeCallback: (WebSocketErrorCode) -> ()
-
-    /// Creates a new `WebSocket` using the supplied `Channel`.
+    /// Creates a new `WebSocket` using the supplied `Channel` and `Mode`.
     /// Use `httpProtocolUpgrader(...)` to create a protocol upgrader that can create `WebSocket`s.
-    internal init(channel: Channel) {
+    internal init(channel: Channel, mode: Mode, delegate: WebSocketDelegate) {
         self.channel = channel
+        self.mode = mode
+        self.delegate = delegate
         self.isClosed = false
-        self.onConnectedCallback = { _ in }
-        self.onDisconnectedCallback = { _ in }
-        self.onTextCallback = { _, _ in }
-        self.onBinaryCallback = { _, _ in }
-        self.onErrorCallback = { _, _ in }
-        self.onCloseCodeCallback = { _ in }
-    }
-
-    public func onConnected(_ callback: @escaping (WebSocket) -> ()) {
-        onConnectedCallback = callback
     }
     
-    public func onDisconnected(_ callback: @escaping (WebSocket) -> ()) {
-        onDisconnectedCallback = callback
-    }
-
-    // MARK: Receive
-
-    /// Adds a callback to this `WebSocket` to receive text-formatted messages.
-    ///
-    ///     ws.onText { ws, string in
-    ///         ws.send(string.reversed())
-    ///     }
-    ///
-    /// Use `onBinary(_:)` to handle binary-formatted messages.
-    ///
-    /// - parameters:
-    ///     - callback: Closure to accept incoming text-formatted data.
-    ///                 This will be called every time the connected client sends text.
-    public func onText(_ callback: @escaping (WebSocket, String) -> ()) {
-        onTextCallback = callback
-    }
-
-    /// Adds a callback to this `WebSocket` to receive binary-formatted messages.
-    ///
-    ///     ws.onBinary { ws, data in
-    ///         print(data)
-    ///     }
-    ///
-    /// Use `onText(_:)` to handle text-formatted messages.
-    ///
-    /// - parameters:
-    ///     - callback: Closure to accept incoming binary-formatted data.
-    ///                 This will be called every time the connected client sends binary-data.
-    public func onBinary(_ callback: @escaping (WebSocket, Data) -> ()) {
-        onBinaryCallback = callback
-    }
-
-    /// Adds a callback to this `WebSocket` to handle errors.
-    ///
-    ///     ws.onError { ws, error in
-    ///         print(error)
-    ///     }
-    ///
-    /// - parameters:
-    ///     - callback: Closure to handle error's caught during this connection.
-    public func onError(_ callback: @escaping (WebSocket, Error) -> ()) {
-        onErrorCallback = callback
-    }
-
-    /// Adds a callback to this `WebSocket` to handle incoming close codes.
-    ///
-    ///     ws.onCloseCode { closeCode in
-    ///         print(closeCode)
-    ///     }
-    ///
-    /// - parameters:
-    ///     - callback: Closure to handle received close codes.
-    public func onCloseCode(_ callback: @escaping (WebSocketErrorCode) -> ()) {
-        onCloseCodeCallback = callback
-    }
 
     // MARK: Send
 
@@ -209,7 +164,8 @@ public final class WebSocket: BasicWorker {
         let data = data.convertToData()
         var buffer = channel.allocator.buffer(capacity: data.count)
         buffer.write(bytes: data)
-        send(WebSocketFrame(fin: true, opcode: opcode, data: buffer), promise: promise)
+        let maskKey: WebSocketMaskingKey? = mode.maskKey()
+        send(WebSocketFrame(fin: true, opcode: opcode, maskKey: maskKey, data: buffer), promise: promise)
     }
 
     /// Private send that accepts a raw `WebSocketFrame`.
