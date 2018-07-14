@@ -27,13 +27,11 @@ private final class WebSocketHandler: ChannelInboundHandler {
     /// See `ChannelInboundHandler`.
     func channelActive(ctx: ChannelHandlerContext) {
         // connected
-        webSocket.onConnectedCallback(webSocket)
         ctx.fireChannelActive()
     }
     
     func channelInactive(ctx: ChannelHandlerContext) {
         // disconnected
-        webSocket.onDisconnectedCallback(webSocket)
         ctx.fireChannelInactive()
     }
 
