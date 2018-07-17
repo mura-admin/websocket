@@ -28,6 +28,7 @@ private final class WebSocketHandler: ChannelInboundHandler {
     func channelActive(ctx: ChannelHandlerContext) {
         // connected
         ctx.fireChannelActive()
+        webSocket.delegate?.webSocketDidConnect(socket: webSocket)
     }
     
     func channelInactive(ctx: ChannelHandlerContext) {

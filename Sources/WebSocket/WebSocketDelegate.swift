@@ -1,6 +1,7 @@
 import Foundation
 
 public protocol WebSocketDelegate: class {
+    func webSocketDidConnect(socket: WebSocket)
     func webSocketDidReceiveText(socket: WebSocket, text: String)
     func webSocketDidReceiveBinary(socket: WebSocket, data: Data)
     func webSocketDidDisconnect(socket: WebSocket, code: WebSocketErrorCode?)
