@@ -107,7 +107,7 @@ private final class WebSocketHandler: ChannelInboundHandler {
         }
 
         let responseFrame = WebSocketFrame(fin: true, opcode: .pong, data: frameData)
-        ctx.write(self.wrapOutboundOut(responseFrame), promise: nil)
+        ctx.writeAndFlush(self.wrapOutboundOut(responseFrame), promise: nil)
     }
 
     /// Closes the connection with error frame.
