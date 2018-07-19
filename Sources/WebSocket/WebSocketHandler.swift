@@ -2,10 +2,10 @@ extension ChannelPipeline {
     /// Adds the supplied `WebSocket` to this `ChannelPipeline`.
     internal func add(webSocket: WebSocket) -> Future<Void> {
         let handler = WebSocketHandler(webSocket: webSocket)
-        return add(handler: handler).do { _ in
+        return add(handler: handler).then {
             
-            self.context(handler: handler).do { ctx in
-                
+            return self.context(handler: handler).map { ctx in
+                                
                 handler.channelActive(ctx: ctx)
             }
         }

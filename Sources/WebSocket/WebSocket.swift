@@ -147,6 +147,14 @@ public final class WebSocket: BasicWorker {
             channel.close(promise: nil)
         }
     }
+    
+    public func ping() {
+        guard !isClosed else {
+            return
+        }
+        let frame = WebSocketFrame(fin: true, opcode: .ping, data: channel.allocator.buffer(capacity: 0))
+        send(frame, promise: nil)
+    }
 
     // MARK: Private
 
