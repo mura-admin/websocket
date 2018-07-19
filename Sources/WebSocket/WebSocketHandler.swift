@@ -90,8 +90,8 @@ private final class WebSocketHandler: ChannelInboundHandler {
             // This is an unsolicited close. We're going to send a response frame and
             // then, when we've sent it, close up shop. We should send back the close code the remote
             // peer sent us, unless they didn't send one at all.
-            let closeFrame = WebSocketFrame(fin: true, opcode: .connectionClose, data: data)
-            _ = ctx.write(wrapOutboundOut(closeFrame)).always {
+            let closeFrame = WebSocketFrame(fin: true, opcode: .connectionClose, maskKey: webSocket.mode.maskKey(), data: data)
+            _ = ctx.writeAndFlush(wrapOutboundOut(closeFrame)).always {
                 _ = ctx.close(promise: nil)
             }
         }
@@ -106,7 +106,7 @@ private final class WebSocketHandler: ChannelInboundHandler {
             frameData.webSocketUnmask(maskingKey)
         }
 
-        let responseFrame = WebSocketFrame(fin: true, opcode: .pong, data: frameData)
+        let responseFrame = WebSocketFrame(fin: true, opcode: .pong, maskKey: webSocket.mode.maskKey(), data: frameData)
         ctx.writeAndFlush(self.wrapOutboundOut(responseFrame), promise: nil)
     }
 
@@ -117,8 +117,8 @@ private final class WebSocketHandler: ChannelInboundHandler {
         var data = ctx.channel.allocator.buffer(capacity: 2)
         let error = WebSocketErrorCode.protocolError
         data.write(webSocketErrorCode: error)
-        let frame = WebSocketFrame(fin: true, opcode: .connectionClose, data: data)
-        _ = ctx.write(self.wrapOutboundOut(frame)).then {
+        let frame = WebSocketFrame(fin: true, opcode: .connectionClose, maskKey: webSocket.mode.maskKey(), data: data)
+        _ = ctx.writeAndFlush(self.wrapOutboundOut(frame)).then {
             ctx.close(mode: .output)
         }
         webSocket.isClosed = true
