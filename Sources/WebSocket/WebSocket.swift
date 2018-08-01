@@ -32,7 +32,7 @@ public final class WebSocket: BasicWorker {
         public func maskKey() -> WebSocketMaskingKey? {
             switch self {
             case .client:
-                let buffer = try! CryptoRandom().generateData(count: 4).map { $0 }
+                let buffer = try! CryptoRandom().generateData(count: 4)
                 return WebSocketMaskingKey(buffer)
             case .server:
                 return  nil
