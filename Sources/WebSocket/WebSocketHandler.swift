@@ -40,6 +40,7 @@ private final class WebSocketHandler: ChannelInboundHandler {
     func channelInactive(ctx: ChannelHandlerContext) {
         // disconnected
         ctx.fireChannelInactive()
+        webSocket.delegate?.webSocketDidDisconnect(socket: webSocket)
     }
 
     /// See `ChannelInboundHandler`.
@@ -76,9 +77,9 @@ private final class WebSocketHandler: ChannelInboundHandler {
             .map(Int.init)
             .flatMap(WebSocketErrorCode.init(codeNumber:))
         {
-            webSocket.delegate?.webSocketDidDisconnect(socket: webSocket, code: closeCode)
+            webSocket.delegate?.webSocketDidReceiveClose(socket: webSocket, code: closeCode)
         } else {
-            webSocket.delegate?.webSocketDidDisconnect(socket: webSocket, code: nil)
+            webSocket.delegate?.webSocketDidReceiveClose(socket: webSocket, code: nil)
         }
 
         // Handle a received close frame. In websockets, we're just going to send the close
